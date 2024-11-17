@@ -102,6 +102,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-#Her 5 döngüde 1 kez 20 saniye mola verir.
-#ikinci aracı sadece bana özel yapacağım.
-#3 resimden sonra 10 saniye duracak. buna da renkli colorama
