@@ -1,4 +1,4 @@
-# CoolyChanger Version 1
+# CoolyChanger Version 1.0.0
 Whatsapp profile picture changer tool.
 
 ## Features
