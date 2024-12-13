@@ -1,11 +1,17 @@
-##############
-#!Version: 1 #
-#!Ruzgar-ui  #
-##############
+##################
+#!Version: 2.0.0 #
+#!By:  Ruzgar-ui #
+##################
+import os
 import time
+from datetime import datetime
 
 import colorama
+import keyboard
+import requests
+from PIL import Image
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
@@ -26,12 +32,53 @@ reset="\033[00m"
 colorama.init()
 
 def login_whatsapp():
+    print(f"{colorama.Fore.LIGHTRED_EX}Trying to open whatsapp.")
     options = Options()
     options.add_argument("--disable-notifications")
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     driver.get('https://web.whatsapp.com')
+    driver.set_window_position(-10000, 0)
+    print("Waiting for QR Code...")
+
+    qrcode_element = WebDriverWait(driver, 30).until(
+        EC.visibility_of_element_located((By.XPATH, '//canvas[@aria-label="Scan this QR code to link a device!"]'))
+    )
+
+    screenshot = "qrcode_screenshot.png"
+    driver.save_screenshot(screenshot)
+    qrpath = os.path.abspath(f"{screenshot}")
+    print(f"{green}QR Code is saved in {qrpath}")
+
+    img = Image.open(f"{qrpath}")
+    img.show()
+
     print(f"{purple}Please log in to whatsapp.{cyan}")
-    input('When you log in, press "enter" key')
+    start_time = time.time()
+
+    while True:
+        xyz = int(time.time() - start_time)
+        if xyz!=0 and xyz%60 == 0 and xyz!=180 and xyz<=180 and xyz<180:
+            print(f"{red}QR Code is refreshed{cyan}")
+            os.system("taskkill /f /im dllhost.exe")
+            driver.save_screenshot(screenshot)
+            qrpath = os.path.abspath(f"{screenshot}")
+            print(f"{green}QR Code is saved in {qrpath}")
+            img = Image.open(f"{qrpath}")
+            img.show()
+            time.sleep(1)
+        elif xyz == 240:
+            os.system("taskkill /f /im dllhost.exe")
+            print("Failed to read QR code.")
+            return None
+        else:
+            try:
+                qrcode_element = WebDriverWait(driver, 1).until(
+                    EC.visibility_of_element_located((By.XPATH, '//canvas[@aria-label="Scan this QR code to link a device!"]'))
+                )
+            except TimeoutException:
+                print("Login successful!")
+                os.system("taskkill /f /im dllhost.exe")
+                break
     return driver
 
 def get_image_path():
@@ -71,33 +118,56 @@ def change_profile_picture(driver, image_path, loop, sec):
 
         div_button = wait.until(
             EC.element_to_be_clickable((By.XPATH, '//div[@class="x1c4vz4f xs83m0k xdl72j9 x1g77sc7 x78zum5 xozqiw3 x1oa3qoh x12fk4p8 xeuugli x2lwn1j xdt5ytf x12lumcd x1qjc9v5 xl56j7k x9f619 x1pi30zi x1y1aw1k xwib8y2"]'))
-        )                                                #data-tab="-1"
+        )
         div_button.click()
         time.sleep(0.1)
 
-        print(f"{cyan}")
-        if loop == "i":
-            num=0
-            while True:
-                print(f"Loop: {loop}")
-                if num % 5 == 0: time.sleep(20)
-                num+=1
-                loopi(driver, image_path, sec)
+        image = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//img[contains(@src, "pps.whatsapp.net")]'))
+        )
+        image_url = image.get_attribute('src')
+        response = requests.get(image_url)
+        file_name = "downloaded_image.jpg"
+        if response.status_code == 200:
+            with open(file_name, 'wb') as file:
+                file.write(response.content)
+            print(f"Old profile picture: {file_name}")
         else:
-            num = 0
-            loop = int(loop)
-            while num < loop:
-                if num%5 == 0:time.sleep(20)
-                num += 1
-                print(f"Loop: {loop}/{num}")
-                loopi(driver, image_path, sec)
+            print(f"Error: {response.status_code}")
+        old_image = os.path.abspath(f"{file_name}")
+        print(f"Old image path: {old_image} {green}")
+        try:
+            print(f"{cyan}")
+            if loop == "i":
+                num=0
+                while True:
+                    print(f"Loop: {loop}")
+                    if num % 5 == 0: time.sleep(20)
+                    num+=1
+                    loopi(driver, image_path, sec)
+            else:
+                num = 0
+                loop = int(loop)
+                while num < loop:
+                    if num%5 == 0:time.sleep(20)
+                    num += 1
+                    print(f"Loop: {loop}/{num}")
+                    loopi(driver, image_path, sec)
+        except KeyboardInterrupt:
+            print("Logging out...")
+        finally:
+            print("Thanks for using...")
+            old_image_folder = os.path.dirname(os.path.abspath("downloaded_image.jpg"))
+            os.startfile(old_image_folder)
+            print(f"Old Profile Picture location: {old_image_folder}")
     except Exception as e:
-        print(e)
+        print(f"Exception: {e}")
 
 def main():
     driver = login_whatsapp()
-    image_path, loop, sec = get_image_path()
-    change_profile_picture(driver, image_path, loop, sec)
+    if driver != None and driver:
+        image_path, loop, sec = get_image_path()
+        change_profile_picture(driver, image_path, loop, sec)
     driver.quit()
 
 if __name__ == "__main__":
