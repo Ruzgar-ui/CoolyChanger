@@ -168,7 +168,7 @@ def main():
     if driver != None and driver:
         image_path, loop, sec = get_image_path()
         change_profile_picture(driver, image_path, loop, sec)
-    driver.quit()
+        driver.quit()
 
 if __name__ == "__main__":
     main()
